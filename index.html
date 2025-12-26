@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Check-in QR | 15 năm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #000;
+    color: #fff;
+}
+h2 { font-size: 28px; }
+#reader {
+    width: 320px;
+    margin: auto;
+}
+.status {
+    margin-top: 12px;
+    font-size: 20px;
+    color: #ccc;
+}
+.result {
+    margin-top: 25px;
+    padding: 30px;
+    font-size: 28px;
+    display: none;
+}
+.success { background: #0a7d2a; }
+.error { background: #b00020; }
+.big {
+    font-size: 42px;
+    font-weight: bold;
+}
+button {
+    margin-top: 20px;
+    padding: 14px 32px;
+    font-size: 22px;
+}
+.start {
+    background: #1e88e5;
+    color: #fff;
+}
+#reader {
+  width: 100%;
+  max-width: 360px;
+  margin: auto;
+  border: 4px solid #00c853;
+  border-radius: 16px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>🎫 CHECK-IN QR</h2>
+
+<button class="start" onclick="startScan()">▶ BẮT ĐẦU QUÉT</button>
+
+<div id="reader" style="display:none;"></div>
+<div id="status" class="status"></div>
+
+<div id="result" class="result">
+    <div id="message" class="big"></div>
+    <div id="counter"></div>
+    <button onclick="resumeScan()">TIẾP TỤC</button>
+</div>
+
+<script>
+// ================== CẤU HÌNH ==================
+const VALID_KEY = "DTD-15NAM";
+
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID"
+};
+// ==============================================
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let reader;
+let scanning = false;
+
+// 🔊 Âm thanh
+const soundOK = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+const soundERR = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+function startScan() {
+    document.querySelector(".start").style.display = "none";
+    document.getElementById("reader").style.display = "block";
+    document.getElementById("status").innerText = "🔍 Đang tìm mã QR…";
+
+    reader = new Html5Qrcode("reader");
+    scanning = true;
+
+    reader.start(
+	  {
+		facingMode: "environment",
+		focusMode: "continuous"
+	  },
+	  {
+		fps: 15,
+		qrbox: { width: 280, height: 280 },
+		aspectRatio: 1.0,
+		disableFlip: true
+	  },
+	  onScanSuccess,
+	  () => {
+		document.getElementById("status").innerText = "📷 Đưa mã QR vào khung – giữ yên";
+	  }
+	).catch(err => {
+  console.error(err);
+  document.getElementById("status").innerText =
+    "❌ Không mở được camera. Hãy mở bằng https:// hoặc http://localhost";
+});
+
+
+}
+
+async function onScanSuccess(text) {
+    if (!scanning) return;
+    scanning = false;
+    reader.pause();
+
+    if (text.trim() !== VALID_KEY) {
+        soundERR.play();
+        showError("QR KHÔNG HỢP LỆ");
+        return;
+    }
+
+    soundOK.play();
+
+    const ref = db.collection("counter").doc("main");
+
+    try {
+        await db.runTransaction(async (tx) => {
+            const doc = await tx.get(ref);
+            let total = doc.exists ? doc.data().total : 0;
+            total++;
+            tx.set(ref, { total }, { merge: true });
+            showSuccess(total);
+        });
+    } catch (e) {
+        showError("LỖI HỆ THỐNG");
+    }
+}
+
+function showSuccess(total) {
+    const div = document.getElementById("result");
+    div.className = "result success";
+    div.style.display = "block";
+
+    let note = total > 500
+        ? "<br>⚠ ĐỦ 500 – MỜI SANG KHU ĐỨNG"
+        : "";
+
+    document.getElementById("message").innerHTML = "✔ HỢP LỆ";
+    document.getElementById("counter").innerHTML =
+        `<div class="big">${total}</div>${note}`;
+}
+
+function showError(msg) {
+    const div = document.getElementById("result");
+    div.className = "result error";
+    div.style.display = "block";
+    document.getElementById("message").innerHTML = msg;
+    document.getElementById("counter").innerHTML = "";
+}
+
+function resumeScan() {
+    document.getElementById("result").style.display = "none";
+    document.getElementById("status").innerText = "🔍 Đang tìm mã QR…";
+    scanning = true;
+    reader.resume();
+}
+</script>
+
+</body>
+</html>
