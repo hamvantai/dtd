@@ -59,11 +59,15 @@ input, button {
   <div id="counter">0</div>
   <div id="status">Sẵn sàng quét</div>
   <div id="reader"></div>
+
   <button onclick="startScan()">BẮT ĐẦU</button>
+  <br>
+  <button onclick="resetCount()" style="background:#444">RESET</button>
 </div>
 
 <script>
 const VALID_KEY = "DTD-15NAM";
+const RESET_PASSWORD = "DTD15"; // <<< ĐỔI MẬT KHẨU TẠI ĐÂY
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIZwoMvg-7r6_OPNlyqdhMvnVsxmOdeeBkXSGv22tQWKAfoUGIpIiIKNc8WO_TV5UaOg/exec";
 
 let machine = localStorage.getItem("machine");
@@ -117,7 +121,7 @@ function startScan() {
           document.getElementById("counter").innerText = count;
           document.getElementById("status").innerText = "HỢP LỆ";
 
-          sendToSheet(); // <<< GỬI NGAY LÊN SHEET
+          sendToSheet();
         } else {
           document.body.className = "bad";
           document.getElementById("status").innerText = "SAI QR";
@@ -131,6 +135,25 @@ function startScan() {
       }
     );
   });
+}
+
+function resetCount() {
+  const pw = prompt("Nhập mật khẩu reset:");
+
+  if (pw === null) return;
+
+  if (pw !== RESET_PASSWORD) {
+    alert("❌ Sai mật khẩu!");
+    return;
+  }
+
+  count = 0;
+  localStorage.setItem("count", count);
+  document.getElementById("counter").innerText = count;
+  document.getElementById("status").innerText = "ĐÃ RESET";
+
+  const url = `${SCRIPT_URL}?may=${encodeURIComponent(machine)}&count=0`;
+  fetch(url).catch(()=>{});
 }
 </script>
 
