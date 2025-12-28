@@ -8,14 +8,39 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body { margin:0; font-family:Arial; background:#111; color:#fff; text-align:center }
-#reader { width:320px; margin:auto; display:none }
-#counter { font-size:64px; margin:10px }
-#status { font-size:22px; margin:10px }
-input, button { font-size:22px; padding:10px; margin:8px }
-.ok { background:#1b5e20 }
-.bad { background:#b71c1c }
-.neutral { background:#111 }
+body {
+  margin:0;
+  font-family:Arial;
+  background:#111;
+  color:#fff;
+  text-align:center;
+}
+#reader {
+  width:320px;
+  margin:auto;
+  display:none;
+}
+#counter {
+  font-size:64px;
+  margin:10px;
+}
+#status {
+  font-size:22px;
+  margin:10px;
+}
+input, button {
+  font-size:22px;
+  padding:10px;
+  margin:8px;
+}
+.ok { background:#1b5e20; }
+.bad { background:#b71c1c; }
+.neutral { background:#111; }
+
+/* FIX IOS CAMERA MIRROR */
+#reader video {
+  transform: scaleX(-1);
+}
 </style>
 </head>
 
@@ -39,7 +64,7 @@ input, button { font-size:22px; padding:10px; margin:8px }
 
 <script>
 const VALID_KEY = "DTD-15NAM";
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzg72_sQfbQLVTyoXYtC374UwFC2DSdKZ7t77rUWG8-MraKZLjtxU3Ap8nMyeB2tPosKw/exec"; // <<< DÁN URL APPS SCRIPT
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzg72_sQfbQLVTyoXYtC374UwFC2DSdKZ7t77rUWG8-MraKZLjtxU3Ap8nMyeB2tPosKw/exec";
 
 let machine = localStorage.getItem("machine");
 let count = Number(localStorage.getItem("count") || 0);
@@ -62,15 +87,24 @@ function initMain() {
   document.getElementById("counter").innerText = count;
 }
 
+function sendToSheet() {
+  const url = `${SCRIPT_URL}?may=${encodeURIComponent(machine)}&count=${count}`;
+  fetch(url).catch(()=>{});
+}
+
 function startScan() {
   document.getElementById("reader").style.display = "block";
   qr = new Html5Qrcode("reader");
 
   Html5Qrcode.getCameras().then(devices => {
-    const camId = devices[devices.length - 1].id;
+    const camId = devices[devices.length - 1].id; // camera sau
     qr.start(
       camId,
-      { fps:10, qrbox:250 },
+      {
+        fps: 10,
+        qrbox: 250,
+        videoConstraints: { facingMode: "environment" }
+      },
       txt => {
         if (scanned) return;
         scanned = true;
@@ -78,9 +112,12 @@ function startScan() {
         if (txt.trim() === VALID_KEY) {
           count++;
           localStorage.setItem("count", count);
+
           document.body.className = "ok";
           document.getElementById("counter").innerText = count;
           document.getElementById("status").innerText = "HỢP LỆ";
+
+          sendToSheet(); // <<< GỬI NGAY LÊN SHEET
         } else {
           document.body.className = "bad";
           document.getElementById("status").innerText = "SAI QR";
@@ -95,19 +132,6 @@ function startScan() {
     );
   });
 }
-
-/* GỬI DỮ LIỆU LÊN GOOGLE SHEET MỖI 10 GIÂY */
-setInterval(() => {
-  if (!machine) return;
-
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      may: machine,
-      count: count
-    })
-  }).catch(() => {});
-}, 60000);
 </script>
 
 </body>
