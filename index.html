@@ -46,7 +46,7 @@ input, button {
 
 <body class="neutral">
 <h5>TRƯỜNG ĐOÀN THỊ ĐIỂM HẠ LONG</h5>
-<h2>CHECK-IN QR</h2>
+<h2>KIỂM TRA VÉ MỜI</h2>
 
 <div id="setup">
   <p>Nhập mã máy (vd: may02)</p>
@@ -68,7 +68,7 @@ input, button {
 <script>
 const VALID_KEY = "DTD-15NAM";
 const RESET_PASSWORD = "DTD15"; // <<< ĐỔI MẬT KHẨU TẠI ĐÂY
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIZwoMvg-7r6_OPNlyqdhMvnVsxmOdeeBkXSGv22tQWKAfoUGIpIiIKNc8WO_TV5UaOg/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxElDCRLb8D0KYuNOND9Wah2R1RkBBXGMVhOktStUaGC-JY86curkla_4v02_ijK_7ZmQ/exec";
 
 let machine = localStorage.getItem("machine");
 let count = Number(localStorage.getItem("count") || 0);
@@ -156,6 +156,8 @@ function resetCount() {
   fetch(url).catch(()=>{});
 }
 </script>
-
 </body>
+<footer class="footer">
+	<a href="https://phamvanthuy.com" target="_blank">© 2025 - Phạm Văn Thủy</a>
+</footer>
 </html>
