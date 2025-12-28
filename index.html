@@ -67,21 +67,33 @@ input, button {
 
 <script>
 const VALID_KEY = "DTD-15NAM";
-const RESET_PASSWORD = "DTD15"; // <<< ĐỔI MẬT KHẨU TẠI ĐÂY
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyTLzewfNZxqnC0Rk2h5oubEvAH3nGzGtcD2kKVD87H/dev";
+const RESET_PASSWORD = "DTD15"; // đổi mật khẩu nếu cần
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyTLzewfNZxqnC0Rk2h5oubEvAH3nGzGtcD2kKVD87H/exec";
 
 let machine = localStorage.getItem("machine");
 let count = Number(localStorage.getItem("count") || 0);
 let scanned = false;
 let qr;
 
+/* ===== KHỞI TẠO ===== */
 if (machine) initMain();
+else showSetup();
+
+function showSetup() {
+  document.getElementById("setup").style.display = "block";
+  document.getElementById("main").style.display = "none";
+}
 
 function saveMachine() {
   const v = document.getElementById("machineInput").value.trim();
   if (!v) return alert("Bạn chưa nhập mã máy");
+
   machine = v;
+  count = 0;
+
   localStorage.setItem("machine", machine);
+  localStorage.setItem("count", count);
+
   initMain();
 }
 
@@ -91,17 +103,26 @@ function initMain() {
   document.getElementById("counter").innerText = count;
 }
 
+/* ===== GỬI DỮ LIỆU ===== */
 function sendToSheet() {
+  if (!machine) return;
   const url = `${SCRIPT_URL}?may=${encodeURIComponent(machine)}&count=${count}`;
   fetch(url).catch(()=>{});
 }
 
+/* ===== QUÉT QR ===== */
 function startScan() {
+  if (!machine) {
+    alert("❗ Chưa nhập mã máy");
+    return;
+  }
+
   document.getElementById("reader").style.display = "block";
   qr = new Html5Qrcode("reader");
 
   Html5Qrcode.getCameras().then(devices => {
-    const camId = devices[devices.length - 1].id; // camera sau
+    const camId = devices[devices.length - 1].id;
+
     qr.start(
       camId,
       {
@@ -137,9 +158,9 @@ function startScan() {
   });
 }
 
+/* ===== RESET ===== */
 function resetCount() {
   const pw = prompt("Nhập mật khẩu reset:");
-
   if (pw === null) return;
 
   if (pw !== RESET_PASSWORD) {
@@ -147,17 +168,23 @@ function resetCount() {
     return;
   }
 
+  // reset dữ liệu
   count = 0;
-  localStorage.setItem("count", count);
-  document.getElementById("counter").innerText = count;
+  machine = null;
+
+  localStorage.removeItem("machine");
+  localStorage.removeItem("count");
+
   document.getElementById("status").innerText = "ĐÃ RESET";
 
-  const url = `${SCRIPT_URL}?may=${encodeURIComponent(machine)}&count=0`;
-  fetch(url).catch(()=>{});
+  showSetup(); // <<< QUAY VỀ NHẬP MÁY
 }
 </script>
+
 </body>
-<footer class="footer">
-	<a href="https://phamvanthuy.com" target="_blank">© 2025 - Phạm Văn Thủy</a>
+<footer>
+  <a href="https://phamvanthuy.com" target="_blank" style="color:#aaa;font-size:14px">
+    © 2025 - Phạm Văn Thủy
+  </a>
 </footer>
 </html>
