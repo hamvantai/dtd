@@ -2,185 +2,145 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Check-in QR | 15 năm</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>QR Check-in – 15 năm</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #000;
-    color: #fff;
-}
-h2 { font-size: 28px; }
-#reader {
-    width: 320px;
-    margin: auto;
-}
-.status {
-    margin-top: 12px;
-    font-size: 20px;
-    color: #ccc;
-}
-.result {
-    margin-top: 25px;
-    padding: 30px;
-    font-size: 28px;
-    display: none;
-}
-.success { background: #0a7d2a; }
-.error { background: #b00020; }
-.big {
-    font-size: 42px;
-    font-weight: bold;
-}
-button {
-    margin-top: 20px;
-    padding: 14px 32px;
-    font-size: 22px;
-}
-.start {
-    background: #1e88e5;
-    color: #fff;
-}
-#reader {
-  width: 100%;
-  max-width: 360px;
-  margin: auto;
-  border: 4px solid #00c853;
-  border-radius: 16px;
-}
-
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: white;
+        text-align: center;
+    }
+    h1 {
+        margin: 10px 0;
+        font-size: 26px;
+    }
+    #reader {
+        width: 320px;
+        margin: auto;
+        display: none;
+    }
+    #status {
+        font-size: 22px;
+        margin: 12px;
+    }
+    #counter {
+        font-size: 60px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .ok {
+        background: #1b5e20;
+    }
+    .bad {
+        background: #b71c1c;
+    }
+    .neutral {
+        background: #111;
+    }
+    button {
+        font-size: 22px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        background: #1976d2;
+        color: white;
+        margin-top: 15px;
+    }
 </style>
 </head>
 
-<body>
+<body class="neutral">
 
-<h2>🎫 CHECK-IN QR</h2>
+<h1>🎟️ CHECK-IN KHÁCH MỜI</h1>
 
-<button class="start" onclick="startScan()">▶ BẮT ĐẦU QUÉT</button>
+<div id="counter">0</div>
+<div id="status">Nhấn BẮT ĐẦU để quét QR</div>
 
-<div id="reader" style="display:none;"></div>
-<div id="status" class="status"></div>
+<div id="reader"></div>
 
-<div id="result" class="result">
-    <div id="message" class="big"></div>
-    <div id="counter"></div>
-    <button onclick="resumeScan()">TIẾP TỤC</button>
-</div>
+<button id="startBtn" onclick="startScan()">▶ BẮT ĐẦU</button>
+
+<audio id="sound-ok">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=">
+</audio>
+
+<audio id="sound-bad">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=">
+</audio>
 
 <script>
-// ================== CẤU HÌNH ==================
-const VALID_KEY = "DTD-15NAM";
+const VALID_KEY = "DTDP-15NAM"; // 🔑 KEY QR DUY NHẤT
+let count = 0;
+let scanned = false;
+let html5Qr;
 
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID"
-};
-// ==============================================
+function playOk() {
+    document.getElementById("sound-ok").play();
+}
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-let reader;
-let scanning = false;
-
-// 🔊 Âm thanh
-const soundOK = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
-const soundERR = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+function playBad() {
+    document.getElementById("sound-bad").play();
+}
 
 function startScan() {
-    document.querySelector(".start").style.display = "none";
+    document.getElementById("startBtn").style.display = "none";
     document.getElementById("reader").style.display = "block";
-    document.getElementById("status").innerText = "🔍 Đang tìm mã QR…";
+    document.getElementById("status").innerText = "📷 Đang mở camera...";
 
-    reader = new Html5Qrcode("reader");
-    scanning = true;
+    html5Qr = new Html5Qrcode("reader");
 
-    reader.start(
-	  {
-		facingMode: "environment",
-		focusMode: "continuous"
-	  },
-	  {
-		fps: 15,
-		qrbox: { width: 280, height: 280 },
-		aspectRatio: 1.0,
-		disableFlip: true
-	  },
-	  onScanSuccess,
-	  () => {
-		document.getElementById("status").innerText = "📷 Đưa mã QR vào khung – giữ yên";
-	  }
-	).catch(err => {
-  console.error(err);
-  document.getElementById("status").innerText =
-    "❌ Không mở được camera. Hãy mở bằng https:// hoặc http://localhost";
-});
+    Html5Qrcode.getCameras().then(devices => {
+        if (!devices || devices.length === 0) {
+            document.getElementById("status").innerText = "❌ Không tìm thấy camera";
+            return;
+        }
 
+        const camId = devices[devices.length - 1].id;
 
-}
+        html5Qr.start(
+            camId,
+            { fps: 10, qrbox: 250 },
+            qrText => {
+                if (scanned) return;
+                scanned = true;
 
-async function onScanSuccess(text) {
-    if (!scanning) return;
-    scanning = false;
-    reader.pause();
+                if (qrText.trim() === VALID_KEY) {
+                    count++;
+                    document.body.className = "ok";
+                    document.getElementById("counter").innerText = count;
+                    document.getElementById("status").innerText = "✅ Vé hợp lệ";
+                    playOk();
+                } else {
+                    document.body.className = "bad";
+                    document.getElementById("status").innerText = "❌ Vé không hợp lệ";
+                    playBad();
+                }
 
-    if (text.trim() !== VALID_KEY) {
-        soundERR.play();
-        showError("QR KHÔNG HỢP LỆ");
-        return;
-    }
-
-    soundOK.play();
-
-    const ref = db.collection("counter").doc("main");
-
-    try {
-        await db.runTransaction(async (tx) => {
-            const doc = await tx.get(ref);
-            let total = doc.exists ? doc.data().total : 0;
-            total++;
-            tx.set(ref, { total }, { merge: true });
-            showSuccess(total);
+                setTimeout(() => {
+                    document.body.className = "neutral";
+                    document.getElementById("status").innerText = "🔍 Đưa mã QR vào khung";
+                    scanned = false;
+                }, 1200);
+            },
+            () => {
+                document.getElementById("status").innerText = "🔍 Đưa mã QR vào khung";
+            }
+        ).catch(err => {
+            console.error(err);
+            document.getElementById("status").innerText =
+                "❌ Không mở được camera. Kiểm tra quyền camera.";
         });
-    } catch (e) {
-        showError("LỖI HỆ THỐNG");
-    }
-}
 
-function showSuccess(total) {
-    const div = document.getElementById("result");
-    div.className = "result success";
-    div.style.display = "block";
-
-    let note = total > 500
-        ? "<br>⚠ ĐỦ 500 – MỜI SANG KHU ĐỨNG"
-        : "";
-
-    document.getElementById("message").innerHTML = "✔ HỢP LỆ";
-    document.getElementById("counter").innerHTML =
-        `<div class="big">${total}</div>${note}`;
-}
-
-function showError(msg) {
-    const div = document.getElementById("result");
-    div.className = "result error";
-    div.style.display = "block";
-    document.getElementById("message").innerHTML = msg;
-    document.getElementById("counter").innerHTML = "";
-}
-
-function resumeScan() {
-    document.getElementById("result").style.display = "none";
-    document.getElementById("status").innerText = "🔍 Đang tìm mã QR…";
-    scanning = true;
-    reader.resume();
+    }).catch(err => {
+        console.error(err);
+        document.getElementById("status").innerText =
+            "❌ Trình duyệt không hỗ trợ camera";
+    });
 }
 </script>
 
