@@ -20,7 +20,7 @@ input, button { font-size:22px; padding:10px; margin:8px }
 </head>
 
 <body class="neutral">
-
+<h4>TRƯỜNG ĐOÀN THỊ ĐIỂM HẠ LONG</h4>
 <h2>CHECK-IN QR</h2>
 
 <div id="setup">
@@ -50,7 +50,7 @@ if (machine) initMain();
 
 function saveMachine() {
   const v = document.getElementById("machineInput").value.trim();
-  if (!v) return alert("Nhập mã máy");
+  if (!v) return alert("Bạn chưa nhập mã máy");
   machine = v;
   localStorage.setItem("machine", machine);
   initMain();
